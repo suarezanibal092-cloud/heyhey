@@ -1,0 +1,110 @@
+// PostgreSQL Schema - Use this for production
+// Copy this file to schema.prisma and update DATABASE_URL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          String    @default("client")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  whatsappConnections WhatsAppConnection[]
+  webhookLogs         WebhookLog[]
+}
+
+model WhatsAppConnection {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  phoneNumber     String
+  phoneNumberId   String   @unique
+  wabaId          String
+  businessName    String?
+  accessToken     String?
+  status          String   @default("pending")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  connectedAt     DateTime?
+
+  webhookLogs     WebhookLog[]
+}
+
+model WebhookLog {
+  id              String   @id @default(cuid())
+  connectionId    String?
+  connection      WhatsAppConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  eventType       String
+  payload         String
+  processed       Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id              String   @id @default(cuid())
+  connectionId    String
+
+  direction       String
+  from            String
+  to              String
+  messageType     String
+  content         String
+  mediaUrl        String?
+  status          String   @default("pending")
+  whatsappMessageId String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DailyStats {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  totalUsers      Int      @default(0)
+  newUsers        Int      @default(0)
+  totalConnections Int     @default(0)
+  messagesIn      Int      @default(0)
+  messagesOut     Int      @default(0)
+  webhookEvents   Int      @default(0)
+
+  createdAt       DateTime @default(now())
+}
